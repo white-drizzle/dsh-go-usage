@@ -1,0 +1,26 @@
+# Secrets — never commit these
+*.key
+*.pem
+*.env
+.env*
+credentials.yaml
+.credentials.yaml
+*.credentials
+
+# Local DSH state
+.dsh/
+sessions/
+storages/
+profiles/
+pet.json
+.anonymous-user-id
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
