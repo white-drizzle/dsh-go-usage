@@ -1,23 +1,28 @@
-// dsh-go-usage — Host half (persistent plugin form)
-// A standard Cordis plugin package entry (exports.inject + exports.apply).
-// Registers a JSON endpoint /go-usage on the DSH web server; the browser
-// client polls it to render the OpenCode Go subscription quota pill.
-//
-// The API key is resolved through the DSH `credentials` service (env var →
-// ~/.dsh/.credentials.yaml → .env). The outbound HTTPS call runs in a child
-// `node` process with the key passed explicitly in its environment, because
-// the host plugin sandbox has no fetch/process and child env scrubbing would
-// strip `*KEY*` variables.
+/**
+ * dsh-go-usage — Host half (persistent plugin).
+ *
+ * Registers a JSON endpoint `/go-usage` on the DSH web server. The browser
+ * client (lib/client.js) polls this endpoint to render the OpenCode Go
+ * subscription quota pill.
+ *
+ * The API key is resolved through the DSH `credentials` service (env var →
+ * ~/.dsh/.credentials.yaml → .env). The outbound HTTPS call runs in a child
+ * `node` process with the key passed explicitly in its environment, because
+ * the sandbox here has no fetch/process and child env scrubbing would strip
+ * `*KEY*` variables.
+ *
+ * NOTE: credentials / subprocess / sandboxPolicy are declared as hard
+ * dependencies (inject) so the plugin activates only after they are
+ * registered — reading them once with ctx.get() at early boot can observe
+ * them missing.
+ */
 
 export const name = 'dsh-go-usage'
 
-export const inject = ['webServer', 'timer']
+export const inject = ['webServer', 'timer', 'credentials', 'subprocess', 'sandboxPolicy']
 
 export function apply(ctx) {
-  const credentials = ctx.get('credentials')
-  const subprocess = ctx.get('subprocess')
-  const sandboxPolicy = ctx.get('sandboxPolicy')
-  const cwd = sandboxPolicy !== undefined ? sandboxPolicy.workspaceRoot : undefined
+  const cwd = ctx.sandboxPolicy.workspaceRoot
 
   const handler = async (req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -29,13 +34,13 @@ export function apply(ctx) {
     }
 
     try {
-      if (credentials === undefined || subprocess === undefined || cwd === undefined || cwd.length === 0) {
-        respond({ ok: false, reason: 'service unavailable (credentials/subprocess/workspace)' })
+      if (cwd === undefined || cwd.length === 0) {
+        respond({ ok: false, reason: 'workspace root unavailable' })
         return
       }
       let resolved
       try {
-        resolved = await credentials.resolve('OPENCODE_GO_API_KEY')
+        resolved = await ctx.credentials.resolve('OPENCODE_GO_API_KEY')
       } catch {
         resolved = undefined
       }
@@ -45,7 +50,7 @@ export function apply(ctx) {
       }
       let nodePath
       try {
-        nodePath = await subprocess.resolveExecutable('node')
+        nodePath = await ctx.subprocess.resolveExecutable('node')
       } catch {
         nodePath = undefined
       }
@@ -57,7 +62,7 @@ export function apply(ctx) {
         ".then(t => console.log(t))",
         ".catch(e => console.log('__ERR__' + String(e && e.message || e)))",
       ].join('')
-      const handle = subprocess.spawn({
+      const handle = ctx.subprocess.spawn({
         argv: [nodePath, '-e', script],
         cwd,
         stdio: {
