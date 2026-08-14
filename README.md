@@ -44,7 +44,27 @@ export OPENCODE_GO_API_KEY=<your-opencode-go-api-key>
 
 ## Installation
 
-This is a **dynamic Cordis plugin** — it is created and activated at runtime through DSH's `cordis_define` / `cordis_run` tools. No build step or repository install is required.
+There are two ways to run this plugin.
+
+### A. Persistent install (auto-loads on every DSH start, recommended)
+
+1. Copy the `package/` directory of this repository into your DSH profile's
+   `node_modules` as `dsh-go-usage`:
+   ```bash
+   # example for the default web profile
+   cp -r package ~/.dsh/profiles/web/node_modules/dsh-go-usage
+   ```
+2. Append one row to the user patch file `~/.dsh/cordis.patch.yml`:
+   ```yaml
+   - insert:
+       - id: go-usage
+         name: 'dsh-go-usage'
+   ```
+3. Restart DSH. The pill appears in the composer dock of every session and
+   survives restarts. (For a non-default profile, adjust the path in step 1
+   accordingly.)
+
+### B. Dynamic plugin (runtime-defined via the agent)
 
 1. Open a session in the DSH web GUI.
 2. Tell the agent to create the plugin and provide the code from this repository:
@@ -53,10 +73,10 @@ This is a **dynamic Cordis plugin** — it is created and activated at runtime t
 3. The agent will run `cordis_define` (a new plugin with an `idPrefix` like `gous`), then `cordis_run` to activate it.
 4. Approve the client activation in the GUI when prompted.
 
-After activation, the quota pill appears in the row above the composer in every session.
-
 > Tip: the agent can also read the two files directly from this repository's raw URLs:
 > `https://raw.githubusercontent.com/<owner>/dsh-go-usage/main/plugin/host.js` and `.../plugin/client.js`
+
+Note: dynamic plugins live in process memory only and disappear when DSH restarts.
 
 ## How it works
 

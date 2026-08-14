@@ -44,7 +44,24 @@ export OPENCODE_GO_API_KEY=<your-opencode-go-api-key>
 
 ## 安装
 
-这是一个**动态 Cordis 插件**——通过 DSH 的 `cordis_define` / `cordis_run` 工具在运行时创建并激活，无需构建步骤或安装到仓库。
+有两种运行方式。
+
+### A. 持久化安装（每次启动 DSH 自动加载，推荐）
+
+1. 将本仓库的 `package/` 目录复制到你的 DSH profile 的 `node_modules` 中，命名为 `dsh-go-usage`：
+   ```bash
+   # 以默认 web profile 为例
+   cp -r package ~/.dsh/profiles/web/node_modules/dsh-go-usage
+   ```
+2. 在用户补丁文件 `~/.dsh/cordis.patch.yml` 末尾追加一行：
+   ```yaml
+   - insert:
+       - id: go-usage
+         name: 'dsh-go-usage'
+   ```
+3. 重启 DSH。胶囊条会出现在每个会话的输入框上方，重启后依然生效。（非默认 profile 请相应调整第 1 步的路径。）
+
+### B. 动态插件（运行时由 agent 创建）
 
 1. 打开 DSH Web 界面中的任意会话。
 2. 让 agent 创建插件，并给它本仓库的两份源码：
@@ -53,10 +70,10 @@ export OPENCODE_GO_API_KEY=<your-opencode-go-api-key>
 3. agent 会执行 `cordis_define`（新建插件，`idPrefix` 如 `gous`），然后执行 `cordis_run` 激活。
 4. 按提示在界面中批准 Client 端激活。
 
-激活后，额度胶囊条会出现在每个会话输入框上方的行中。
-
 > 小技巧：也可以让 agent 直接读取本仓库的 raw 文件：
 > `https://raw.githubusercontent.com/<owner>/dsh-go-usage/main/plugin/host.js` 与 `.../plugin/client.js`
+
+注意：动态插件只存在于进程内存中，DSH 重启后会消失。
 
 ## 工作原理
 
